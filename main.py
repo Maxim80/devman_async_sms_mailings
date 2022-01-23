@@ -5,22 +5,6 @@ import asks
 import trio
 
 
-def get_params(login: str, psw: str, phones: str,
-               message: str, valid: int) -> dict:
-    return {
-        'login': login,
-        'psw': psw,
-        'phones': phones.strip(' ;,'),
-        'mes': message,
-        'valid': valid,
-    }
-
-
-async def get_request(url: str, params: dict) -> asks.response_objects.Response:
-    request = await asks.get(url, params=params)
-    return request
-
-
 load_dotenv()
 
 
@@ -31,10 +15,29 @@ load_dotenv()
 @click.option('--mes', help='SMS message text')
 @click.option('--valid', default=1, help='Undelivered SMS lifetime in hours')
 async def main(**kwargs) -> None:
-    base_url = 'https://smsc.ru/sys/send.php'
-    params = get_params(kwargs['login'], kwargs['psw'], kwargs['phones'],
-                        kwargs['mes'], kwargs['valid'])
-    request = await get_request(base_url, params)
+    send_url = 'https://smsc.ru/sys/{}.php'.format('send')
+    send_params = {
+        'login': kwargs['login'],
+        'psw': kwargs['psw'],
+        'phones': kwargs['phones'],
+        'mes': kwargs['mes'],
+        'valid': kwargs['valid'],
+        'fmt': 3,
+    }
+    send = await asks.get(send_url, params=send_params)
+
+    message_id = send.json()['id']
+
+    status_url = 'https://smsc.ru/sys/{}.php'.format('status')
+    status_params = {
+        'login': kwargs['login'],
+        'psw': kwargs['psw'],
+        'phone': kwargs['phones'],
+        'id': message_id,
+        'fmt': 3,
+    }
+    status = await asks.get(status_url, params=status_params)
+    print(status.json())
 
 
 if __name__ == '__main__':
