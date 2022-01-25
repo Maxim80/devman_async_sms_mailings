@@ -2,3 +2,4 @@ trio==0.19.0
 asks==2.4.12
 asyncclick==8.0.3.2
 python-dotenv==0.19.2
+quart-trio==0.9.1

@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 from contextvars import ContextVar
 from typing import Optional
+from unittest.mock import patch, Mock
 import asyncclick as click
 import os
 import asks
@@ -29,6 +30,17 @@ async def main(**kwargs) -> None:
     pass
 
 
+async def substitute_asks_post(*args, **kwargs):
+    response = Mock()
+    response.json.return_value = {
+            'status': 0,
+            'last_date': '23.01.2022 06:45:27',
+            'last_timestamp': 1642909527
+        }
+    return response
+
+
+@patch('asks.post', substitute_asks_post)
 async def request_smsc(
         http_method: str,
         api_method: str,
@@ -77,8 +89,6 @@ async def request_smsc(
     if api_method != 'send' and api_method != 'status':
         raise SmscApiError('Not the correct "api_method". Method must be "send" or "status"')
 
-    base_url = 'https://smsc.ru/sys/{}.php'
-
     login = login or smsc_login.get()
     password = password or smsc_password.get()
 
@@ -87,23 +97,24 @@ async def request_smsc(
         'GET':asks.get,
     }
 
+    url = f'https://smsc.ru/sys/{api_method}.php'
     params = {
         'login': login,
         'psw': password,
         'fmt': 3,
+        'charset': 'utf-8',
     }
     params.update(payload)
-
     response = await funcs[http_method](
-        base_url.format(api_method),
+        url,
         params=params,
     )
-
     response = response.json()
+
     if response.get('error'):
         raise SmscApiError(response['error'])
 
-    return response.json()
+    return response
 
 
 if __name__ == '__main__':
