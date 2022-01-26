@@ -97,11 +97,11 @@
           method: 'POST',
           body: bodyParams,
         }).then(response => {
-          
+
           response.json().then(data => {
             form.reset();
             form.firstElementChild.disabled = false;
-            
+
             if (data.errorMessage){
               alert(data.errorMessage);
             }

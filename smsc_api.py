@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 from contextvars import ContextVar
 from typing import Optional
 from unittest.mock import patch, Mock
+from exceptions import SmscApiError
 import asyncclick as click
 import os
 import asks
@@ -16,10 +17,6 @@ smsc_login.set(os.getenv('SMSC_LOGIN'))
 smsc_password.set(os.getenv('SMSC_PASSW'))
 
 
-class SmscApiError(Exception):
-    pass
-
-
 @click.command()
 @click.option('--login', default=None, help='SMSC login')
 @click.option('--psw', default=None, help='SMSC password')
@@ -27,16 +24,32 @@ class SmscApiError(Exception):
 @click.option('--message', help='SMS message text')
 @click.option('--valid', default=1, help='Undelivered SMS lifetime in hours')
 async def main(**kwargs) -> None:
-    pass
+    response = await request_smsc(
+            'POST',
+            'send',
+            payload={
+                'phones': kwargs['phones'],
+                'mes': kwargs['message'],
+                'valid': kwargs['valid'],
+            }
+        )
+    print(response)
+
+    message_id = response['id']
+    message_status = await request_smsc(
+            'GET',
+            'status',
+            payload={
+                'phone': kwargs['phones'],
+                'id': message_id
+            }
+        )
+    print(message_status)
 
 
 async def substitute_asks_post(*args, **kwargs):
     response = Mock()
-    response.json.return_value = {
-            'status': 0,
-            'last_date': '23.01.2022 06:45:27',
-            'last_timestamp': 1642909527
-        }
+    response.json.return_value = {'id': 22, 'cnt': 1}
     return response
 
 
@@ -83,11 +96,11 @@ async def request_smsc(
         ... )
         {'status': 1, 'last_date': '28.12.2019 19:20:22', 'last_timestamp': 1577550022}
     """
-    if http_method != 'POST' and http_method != 'GET':
-        raise SmscApiError('Not the correct "http_method". Method must be "POST" or "GET"')
+    if http_method not in {'POST', 'GET'}:
+        raise SmscApiError('Not the correct "http_method". Method must be "POST" or "GET".')
 
-    if api_method != 'send' and api_method != 'status':
-        raise SmscApiError('Not the correct "api_method". Method must be "send" or "status"')
+    if api_method not in {'send', 'status'}:
+        raise SmscApiError('Not the correct "api_method". Method must be "send" or "status".')
 
     login = login or smsc_login.get()
     password = password or smsc_password.get()
@@ -103,12 +116,10 @@ async def request_smsc(
         'psw': password,
         'fmt': 3,
         'charset': 'utf-8',
+        **payload
     }
-    params.update(payload)
-    response = await funcs[http_method](
-        url,
-        params=params,
-    )
+
+    response = await funcs[http_method](url, params=params)
     response = response.json()
 
     if response.get('error'):
