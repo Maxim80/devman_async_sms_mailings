@@ -4,3 +4,6 @@ asyncclick==8.0.3.2
 python-dotenv==0.19.2
 quart-trio==0.9.1
 pydantic==1.9.0
+aioredis==2.0.1
+hiredis==2.0.0
+trio-asyncio==0.12.0

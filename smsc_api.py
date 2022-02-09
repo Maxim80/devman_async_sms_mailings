@@ -53,7 +53,7 @@ async def substitute_asks_post(*args, **kwargs):
     return response
 
 
-@patch('asks.post', substitute_asks_post)
+# @patch('asks.post', substitute_asks_post)
 async def request_smsc(
         http_method: str,
         api_method: str,
@@ -122,7 +122,7 @@ async def request_smsc(
     response = await funcs[http_method](url, params=params)
     response = response.json()
 
-    if response.get('error'):
+    if 'error' in response:
         raise SmscApiError(response['error'])
 
     return response
