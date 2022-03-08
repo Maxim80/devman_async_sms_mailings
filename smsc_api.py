@@ -53,7 +53,7 @@ async def substitute_asks_post(*args, **kwargs):
     return response
 
 
-# @patch('asks.post', substitute_asks_post)
+@patch('asks.post', substitute_asks_post)
 async def request_smsc(
         http_method: str,
         api_method: str,
